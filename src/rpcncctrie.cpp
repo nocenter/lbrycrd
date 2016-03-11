@@ -3,6 +3,83 @@
 #include "rpcserver.h"
 #include "univalue/univalue.h"
 
+UniValue getclaimsintrie(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 0)
+        throw std::runtime_error(
+            "getclaimsintrie\n"
+            "Return all claims in the name trie.\n"
+            "Arguments:\n"
+            "None\n"
+            "Result: \n"
+            "[\n"
+            "  {\n"
+            "    \"name\"          (string) the name claimed\n"
+            "    \"claims\": [      (array of object) the claims for this name\n"
+            "      {\n"
+            "        \"txid\"    (string) the txid of the claim\n"
+            "        \"n\"       (numeric) the vout value of the claim\n"
+            "        \"amount\"  (numeric) txout amount\n"
+            "        \"height\"  (numeric) the height of the block in which this transaction is located\n"
+            "        \"value\"   (string) the value of this claim\n"
+            "      }\n"
+            "    ]\n"
+            "  }\n"
+            "]\n"
+        );
+    
+    LOCK(cs_main);
+    UniValue ret(UniValue::VARR);
+
+    CCoinsViewCache view(pcoinsTip);
+    std::vector<namedNodeType> nodes = pnccTrie->flattenTrie();
+
+    for (std::vector<namedNodeType>::iterator it = nodes.begin(); it != nodes.end(); ++it)
+    {
+        if (!it->second.values.empty())
+        {
+            UniValue node(UniValue::VOBJ);
+            node.push_back(Pair("name", it->first));
+            UniValue claims(UniValue::VARR);
+            for (std::vector<CNodeValue>::iterator itClaims = it->second.values.begin(); itClaims != it->second.values.end(); ++itClaims)
+            {
+                UniValue claim(UniValue::VOBJ);
+                claim.push_back(Pair("txid", itClaims->txhash.GetHex()));
+                claim.push_back(Pair("n", (int)itClaims->nOut));
+                claim.push_back(Pair("amount", itClaims->nAmount));
+                claim.push_back(Pair("height", itClaims->nHeight));
+                const CCoins* coin = view.AccessCoins(itClaims->txhash);
+                if (!coin)
+                {
+                    LogPrintf("%s: %s does not exist in the coins view, despite being associated with a name\n",
+                              __func__, itClaims->txhash.GetHex());
+                    claim.push_back(Pair("error", "No value found for claim"));
+                }
+                else if (coin->vout.size() < itClaims->nOut || coin->vout[itClaims->nOut].IsNull())
+                {
+                    LogPrintf("%s: the specified txout of %s appears to have been spent\n", __func__, itClaims->txhash.GetHex());
+                    claim.push_back(Pair("error", "Txout spent"));
+                }
+                else
+                {
+                    int op;
+                    std::vector<std::vector<unsigned char> > vvchParams;
+                    if (!DecodeNCCScript(coin->vout[itClaims->nOut].scriptPubKey, op, vvchParams))
+                    {
+                        LogPrintf("%s: the specified txout of %s does not have an NCC command\n", __func__, itClaims->txhash.GetHex());
+                    }
+                    std::string sValue(vvchParams[1].begin(), vvchParams[1].end());
+                    claim.push_back(Pair("value", sValue));
+                }
+                claims.push_back(claim);
+            }
+            node.push_back(Pair("claims", claims));
+            ret.push_back(node);
+        }
+    }
+    return ret;
+}
+
 UniValue getnametrie(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 0)
