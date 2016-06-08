@@ -531,7 +531,6 @@ static const CRPCCommand commands[] =
     { "Claimtrie",             "gettotalclaims",          &gettotalclaims,          true  },
     { "Claimtrie",             "gettotalvalueofclaims",   &gettotalvalueofclaims,   true  },
     { "Claimtrie",             "getclaimsfortx",          &getclaimsfortx,          true  },
-    { "Claimtrie",             "proofToJSON",             &proofToJSON,             true  },
     { "Claimtrie",             "getnameproof",            &getnameproof,            true  },
 };
 
