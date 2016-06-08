@@ -3141,7 +3141,7 @@ static const CRPCCommand commands[] =
     { "Claimtrie",           "claimname",               &claimname,                true  },
     { "Claimtrie",           "updateclaim",             &updateclaim,              true  },
     { "Claimtrie",           "abandonclaim",            &abandonclaim,             true  },
-    { "Claimtrie",           "listclaims",              &listclaims,               true  },
+    { "Claimtrie",           "listnameclaims",          &listnameclaims,           true  },
     { "Claimtrie",           "supportclaim",            &supportclaim,             true  },
     { "Claimtrie",           "abandonsupport",          &abandonsupport,           true  },
 };
